@@ -1,58 +1,89 @@
-import React from 'react';
-import logo from './logo.svg';
-import { Counter } from './features/counter/Counter';
-import './App.css';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useAppDispatch, useAppSelector } from './app/hooks';
+import NotFound from './components/common/NotFound';
+import PrivateRoute from './components/common/PrivateRoute';
+import Admin from './components/layout/Admin';
+import {
+    authIsAuthReady,
+    authIsLoggedIn,
+    getCurrentUser,
+    setAuthReady,
+} from './features/auth/authSlice';
+import LoginPage from './features/auth/pages/LoginPage';
+import Dashboard from './features/dashboard/Dashboard';
+import AddEditStudent from './features/student/pages/AddEditStudent';
+import Student from './features/student/pages/Student';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <Counter />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <span>
-          <span>Learn </span>
-          <a
-            className="App-link"
-            href="https://reactjs.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux
-          </a>
-          <span>, </span>
-          <a
-            className="App-link"
-            href="https://redux-toolkit.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Redux Toolkit
-          </a>
-          ,<span> and </span>
-          <a
-            className="App-link"
-            href="https://react-redux.js.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            React Redux
-          </a>
-        </span>
-      </header>
-    </div>
-  );
-}
+const App: React.FC = () => {
+    const dispatch = useAppDispatch();
+    const isAuthReady = useAppSelector(authIsAuthReady);
+    const isLoggedIn = useAppSelector(authIsLoggedIn);
+
+    useEffect(() => {
+        const accessToken = localStorage.getItem('access_token');
+
+        if (accessToken) {
+            dispatch(getCurrentUser(accessToken));
+        } else {
+            dispatch(setAuthReady());
+        }
+    }, []);
+
+    return (
+        <>
+            {isAuthReady && (
+                <>
+                    <ToastContainer />
+                    <Routes>
+                        <Route
+                            path="/"
+                            element={<Navigate replace to="/admin" />}
+                        />
+
+                        <Route
+                            path="/login"
+                            element={
+                                isLoggedIn ? (
+                                    <Navigate to="/admin" />
+                                ) : (
+                                    <LoginPage />
+                                )
+                            }
+                        />
+
+                        <Route path="/admin" element={<PrivateRoute />}>
+                            <Route path="" element={<Admin />}>
+                                <Route
+                                    path=""
+                                    element={
+                                        <Navigate to="dashboard" replace />
+                                    }
+                                />
+                                <Route
+                                    path="dashboard"
+                                    element={<Dashboard />}
+                                />
+                                <Route path="student" element={<Student />} />
+                                <Route
+                                    path="student/new"
+                                    element={<AddEditStudent />}
+                                />
+                                <Route
+                                    path="student/edit/:studentId"
+                                    element={<AddEditStudent />}
+                                />
+                            </Route>
+                        </Route>
+
+                        <Route path="*" element={<NotFound />} />
+                    </Routes>
+                </>
+            )}
+        </>
+    );
+};
 
 export default App;
